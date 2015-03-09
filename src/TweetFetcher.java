@@ -14,9 +14,9 @@ public class TweetFetcher implements StatusListener {
 	private static Calendar nextDeletionDate = Calendar.getInstance();
 	
 	// Delete tweets older than this threshold
-	private static final int deletionThreshSeconds = 60 * 3;
+	private static final int deletionThreshSeconds = 60 * 10;
 	// Execute a deletion on this interval
-	private static final int deletionInterval = 60 * 3;
+	private static final int deletionInterval = 60 * 10;
 
 	
 	/*

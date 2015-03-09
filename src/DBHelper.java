@@ -152,7 +152,7 @@ public class DBHelper {
 		}
 	}
 	
-	// Get the number of tweets that we'll be inserting
+	// Get the number of tweets that we'll be inserting 
 	private int getTweetCount(Map<String, List<Status>> map) {
 		int count = 0;
 		for (String key : map.keySet())
