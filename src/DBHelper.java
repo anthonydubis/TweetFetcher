@@ -1,18 +1,20 @@
 import java.sql.*;
+
 import twitter4j.*;
+
 import java.util.*;
 
 
-public class DBHelper {
-	// Holds the IDs for each keyword in the database
+public class DBHelper {	
+	// Constants use to add noise to the location data
+	private final double rad_Earth  = 6378.16;
+	private final double one_degree = (2 * Math.PI * rad_Earth) / 360;
+	private final double one_km     = 1 / one_degree;
+	
 	private Map<String, Integer> keywordIDs = new HashMap<String, Integer>();
-	// Holds the current (lat, lng) for each keyword
 	private HashMap<String, double[]> keywordLoc = new HashMap<String, double[]>();
 	private java.sql.Connection conn;
-	private Statement setupStatement;
-	private Statement readStatement;
-	private ResultSet resultSet;
-	
+		
 	public DBHelper(String[] keywords) {
 		writeKeywords(keywords);
 		setupInitialLocations(keywords);
@@ -35,14 +37,14 @@ public class DBHelper {
 	private void getKeywordIDs() {
 		setupConnection();
 		try {
-			readStatement = conn.createStatement();
-			resultSet = readStatement.executeQuery("SELECT * FROM Keywords;");
-			while (resultSet.next()) {
-				String key = resultSet.getString("keyword");
-				int id     = resultSet.getInt("key_id");
+			Statement stmt = conn.createStatement();
+			ResultSet results = stmt.executeQuery("SELECT * FROM Keywords;");
+			while (results.next()) {
+				String key = results.getString("keyword");
+				int id     = results.getInt("key_id");
 				keywordIDs.put(key, id);
 			}
-		    readStatement.close();
+			stmt.close();
 			
 		} catch (SQLException ex) {
 		    System.out.println("SQLException: " + ex.getMessage());
@@ -56,11 +58,11 @@ public class DBHelper {
 	public void deleteTweetsOlderThan(int secs) {
 		setupConnection();
 		try {
-			setupStatement = conn.createStatement();
+			Statement stmt = conn.createStatement();
 			String delete = "DELETE FROM Tweets " +
 			                "WHERE date_time < from_unixtime(unix_timestamp() - " + secs + ");";
-			setupStatement.executeUpdate(delete);
-			setupStatement.close();
+			stmt.executeUpdate(delete);
+			stmt.close();
 		} catch (SQLException ex) {
 		    System.out.println("SQLException: " + ex.getMessage());
 		    System.out.println("SQLState: " + ex.getSQLState());
@@ -75,13 +77,13 @@ public class DBHelper {
 		setupConnection();
 		
 		try {
-			readStatement = conn.createStatement();
-			resultSet = readStatement.executeQuery("SELECT keyword FROM Keywords;");
+			Statement stmt = conn.createStatement();
+			ResultSet results = stmt.executeQuery("SELECT keyword FROM Keywords;");
 			System.out.println("Getting existing keywords");
 
-			while (resultSet.next()) 
-				keywords.add(resultSet.getString("keyword"));
-		    readStatement.close();
+			while (results.next()) 
+				keywords.add(results.getString("keyword"));
+			stmt.close();
 			
 		} catch (SQLException ex) {
 		    System.out.println("SQLException: " + ex.getMessage());
@@ -101,16 +103,16 @@ public class DBHelper {
 		setupConnection();
 		
 		try {
-			setupStatement = conn.createStatement();
+			Statement stmt = conn.createStatement();
 			
 			for (String keyword : keywords) {
 				if (!existingKeywords.contains(keyword)) {
 					String insert = "INSERT INTO Keywords VALUES (NULL, '" + keyword + "');";
-					setupStatement.addBatch(insert);
+					stmt.addBatch(insert);
 				}
 			}
-			setupStatement.executeBatch();
-			setupStatement.close();
+			stmt.executeBatch();
+			stmt.close();
 		} catch (SQLException ex) {
 		    System.out.println("SQLException: " + ex.getMessage());
 		    System.out.println("SQLState: " + ex.getSQLState());
@@ -118,6 +120,19 @@ public class DBHelper {
 		} finally {
 		    if (conn != null) try { conn.close(); } catch (SQLException ignore) {}
 		}
+	}
+	
+	private double getRandomNoise() {
+		double noise = one_km * 15 * Math.random();
+		if (Math.random() < .5) 
+			noise *= -1;
+		return noise;
+	}
+	
+	private double[] addNoiseToLocation(double[] loc) {
+		loc[0] += getRandomNoise();
+		loc[1] += getRandomNoise();
+		return loc;
 	}
 	
 	/*
@@ -131,38 +146,59 @@ public class DBHelper {
 			// Update the location for this keyword
 			double[] newLoc = {geo.getLatitude(), geo.getLongitude()};
 			keywordLoc.put(keyword, newLoc);
-		} 
+		} else {
+			double[] noisyLocation = addNoiseToLocation(keywordLoc.get(keyword));
+			keywordLoc.put(keyword, noisyLocation);
+		}
+	}
+	
+	// Get the number of tweets that we'll be inserting
+	private int getTweetCount(Map<String, List<Status>> map) {
+		int count = 0;
+		for (String key : map.keySet())
+			count += map.get(key).size();
+		return count;
+	}
+	
+	// Create string for prepared statement with tweet value placeholders
+	private String getInsertSqlStringForTweets(Map<String, List<Status>> map) {
+		int count = getTweetCount(map);
+		
+		StringBuffer sql = new StringBuffer("INSERT INTO Tweets VALUES (NULL, ?, DEFAULT, ?, ?)");
+		for (int i = 1; i < count; i++)
+			sql.append(", (NULL, ?, DEFAULT, ?, ?)");
+		
+		return sql.toString();
+	}
+	
+	// Format the prepared statement with tweet values
+	private void configurePreparedStatement(PreparedStatement pstmt, 
+			Map<String, List<Status>> map) throws SQLException {
+		int i = 1;
+		
+		for (String keyword : map.keySet()) {
+			List<Status> list = map.get(keyword);
+			int keyId = keywordIDs.get(keyword);
+			
+			for (Status status : list) {
+				updateLocationForKeyword(keyword, status);
+				double[] loc = keywordLoc.get(keyword);
+				pstmt.setInt(i++, keyId);
+				pstmt.setDouble(i++, loc[0]);
+				pstmt.setDouble(i++, loc[1]);
+			}
+		}
 	}
 	
 	public void writeTweets(Map<String, List<Status>> map) {
 		if (map.isEmpty()) return;
-		System.out.println("Preparing to write tweets.");
-		StringBuffer sql = new StringBuffer("INSERT INTO Tweets VALUES (NULL, ?, DEFAULT, ?, ?)");
-		int count = 0;
-		for (String key : map.keySet())
-			count += map.get(key).size();
-		for (int i = 1; i < count; i++)
-			sql.append(", (NULL, ?, DEFAULT, ?, ?)");
 		
 		setupConnection();
 		try {
-			PreparedStatement pstmt = conn.prepareStatement(sql.toString());
-			int keyId;
-			int i = 1;
-			for (String keyword : map.keySet()) {
-				List<Status> list = map.get(keyword);
-				keyId = keywordIDs.get(keyword);
-				
-				for (Status status : list) {
-					updateLocationForKeyword(keyword, status);
-					double[] loc = keywordLoc.get(keyword);
-					pstmt.setInt(i++, keyId);
-					pstmt.setDouble(i++, loc[0]);
-					pstmt.setDouble(i++, loc[1]);
-				}
-			}
+			String sql = getInsertSqlStringForTweets(map);
+			PreparedStatement pstmt = conn.prepareStatement(sql);
+			configurePreparedStatement(pstmt, map);
 			pstmt.execute();
-			System.out.println("Wrote new tweets.");
 			pstmt.close();
 			
 		} catch (SQLException ex) {
@@ -174,11 +210,7 @@ public class DBHelper {
 		}
 	}
 	
-	private void setupConnection() {
-		/*
-	  	  Perhaps use System.getProperties("key") here
-		*/
-	  
+	private void setupConnection() {	  
 		String dbName   = DBInfo.dbName;
 		String userName = DBInfo.userName;
 		String password = DBInfo.password;

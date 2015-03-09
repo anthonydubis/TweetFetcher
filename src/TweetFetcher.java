@@ -9,14 +9,14 @@ public class TweetFetcher implements StatusListener {
 	private static DBHelper dbHelper;
 	private static StatusListener tweetListener;
 	private static TwitterStream tweetStream;
-	private static String[] keywords = {"love", "hate", "happy", "sad"};
+	private static String[] keywords = {"love", "music", "friends", "hate", "rio", "london"};
 	private static Map<String, List<Status>> map;
 	private static Calendar nextDeletionDate = Calendar.getInstance();
 	
-	/*
-	 * Constants
-	 */
+	// Delete tweets older than this threshold
 	private static final int deletionThreshSeconds = 60 * 3;
+	// Execute a deletion on this interval
+	private static final int deletionInterval = 60 * 3;
 
 	
 	/*
@@ -57,7 +57,7 @@ public class TweetFetcher implements StatusListener {
 	private static void printListSizes() {
 		for (String keyword : map.keySet()) {
 			List<Status> list = map.get(keyword);
-			System.out.printf("%d %s tweets : ", list.size(), keyword);
+			System.out.printf(": %d %s tweets", list.size(), keyword);
 		}
 		System.out.printf("\n");
 	}
@@ -88,10 +88,10 @@ public class TweetFetcher implements StatusListener {
 		printListSizes();
 		setupListener();
 		
-		nextDeletionDate.add(Calendar.SECOND, -30);
+		nextDeletionDate.add(Calendar.SECOND, -deletionInterval);
 		while (true) {
 			try {
-				Thread.sleep(5000);
+				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -100,7 +100,7 @@ public class TweetFetcher implements StatusListener {
 			Calendar newCal = Calendar.getInstance();
 			if (nextDeletionDate.compareTo(newCal) <= 0) {
 				System.out.println("Deleting Tweets.");
-				newCal.add(Calendar.SECOND, 60*10);
+				newCal.add(Calendar.SECOND, deletionInterval);
 				nextDeletionDate = newCal;
 				dbHelper.deleteTweetsOlderThan(deletionThreshSeconds);
 			}
