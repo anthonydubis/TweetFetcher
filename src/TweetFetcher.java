@@ -14,11 +14,10 @@ public class TweetFetcher implements StatusListener {
 	private static Calendar nextDeletionDate = Calendar.getInstance();
 	
 	// Delete tweets older than this threshold
-	private static final int deletionThreshSeconds = 60 * 10;
+	private static final int deletionThreshSeconds = 60 * 6;
 	// Execute a deletion on this interval
-	private static final int deletionInterval = 60 * 10;
+	private static final int deletionInterval = 60 * 6;
 
-	
 	/*
 	 * Put the tweet in the correct list by looking the list
 	 * up in the map. 
@@ -62,15 +61,6 @@ public class TweetFetcher implements StatusListener {
 		System.out.printf("\n");
 	}
 	
-	/*   
-	 * Create a new map to collect tweets for the keywords
-	 */
-	private static void resetMap() {
-		map = new HashMap<String, List<Status>>();
-		for (String keyword : keywords) {
-			map.put(keyword, new LinkedList<Status>());
-		}
-	}
 	
 	/*
 	 * Use the DBHelper to write the tweets to the database
@@ -81,13 +71,17 @@ public class TweetFetcher implements StatusListener {
 		 dbHelper.writeTweets(mapRef);
 	}
 	
-	public static void main(String[] args) throws TwitterException {
-		// Start listening for tweets
-		dbHelper = new DBHelper(keywords);
-		resetMap();
-		printListSizes();
-		setupListener();
-		
+	/*   
+	 * Create a new map with new LinkedLists to collect tweets for the keywords
+	 */
+	private static void resetMap() {
+		map = new HashMap<String, List<Status>>();
+		for (String keyword : keywords) {
+			map.put(keyword, new LinkedList<Status>());
+		}
+	}
+	
+	private static void beginPeriodicWrites() {
 		nextDeletionDate.add(Calendar.SECOND, -deletionInterval);
 		while (true) {
 			try {
@@ -95,16 +89,32 @@ public class TweetFetcher implements StatusListener {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			// Print the list sizes to see what's being inserted into the database
 			printListSizes();
+			// Write the tweets 
 			writeTweets();
+			
+			// Delete tweets if it's past time
 			Calendar newCal = Calendar.getInstance();
 			if (nextDeletionDate.compareTo(newCal) <= 0) {
-				System.out.println("Deleting Tweets.");
 				newCal.add(Calendar.SECOND, deletionInterval);
 				nextDeletionDate = newCal;
 				dbHelper.deleteTweetsOlderThan(deletionThreshSeconds);
 			}
 		}
+	}
+	
+	public static void main(String[] args) throws TwitterException {
+		dbHelper = new DBHelper(keywords);
+		
+		// Setup the data structure to collect the tweets 
+		resetMap();
+		
+		// Setup the listener to start getting tweet data asynchronously
+		setupListener();
+		
+		// Periodically write the collected tweets to the database
+		beginPeriodicWrites();
 	}
 	
 	public void onException(Exception arg0) {}

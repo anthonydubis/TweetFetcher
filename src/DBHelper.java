@@ -16,8 +16,11 @@ public class DBHelper {
 	private java.sql.Connection conn;
 		
 	public DBHelper(String[] keywords) {
+		// Make sure the keywords are already in the database
 		writeKeywords(keywords);
+		// Set initial locations of tweets for each keyword to NYC
 		setupInitialLocations(keywords);
+		// Get the keyword IDs so you don't have to do this repeatedly before inserts
 		getKeywordIDs();
 	}
 	
