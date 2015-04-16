@@ -211,7 +211,7 @@ public class DBHelper {
 		} finally {
 		    if (conn != null) try { conn.close(); } catch (SQLException ignore) {}
 		}
-		// queueMessenger.queueTweets(map);
+		queueMessenger.queueTweets(map);
 	}
 	
 	private void setupConnection() {	  
