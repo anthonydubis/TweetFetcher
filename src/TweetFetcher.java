@@ -22,7 +22,7 @@ public class TweetFetcher implements StatusListener {
 	 * Put the tweet in the correct list by looking the list
 	 * up in the map. 
 	 */
-	public static void sortStatus(Status status) {				
+	public static void sortStatus(Status status) {			
 		String upperText = status.getText().toLowerCase();
 		for (String keyword : keywords)
 			if (upperText.contains(keyword))
