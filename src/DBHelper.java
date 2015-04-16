@@ -14,6 +14,7 @@ public class DBHelper {
 	private Map<String, Integer> keywordIDs = new HashMap<String, Integer>();
 	private HashMap<String, double[]> keywordLoc = new HashMap<String, double[]>();
 	private java.sql.Connection conn;
+	private QueueMessenger queueMessenger = new QueueMessenger();
 		
 	public DBHelper(String[] keywords) {
 		// Make sure the keywords are already in the database
@@ -210,6 +211,8 @@ public class DBHelper {
 		} finally {
 		    if (conn != null) try { conn.close(); } catch (SQLException ignore) {}
 		}
+		
+		
 	}
 	
 	private void setupConnection() {	  

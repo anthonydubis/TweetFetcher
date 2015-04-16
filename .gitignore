@@ -2,3 +2,5 @@
 **/DBInfo.java
 *~
 bin/**
+*.class
+bin/*.class
