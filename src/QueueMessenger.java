@@ -19,7 +19,7 @@ public class QueueMessenger {
 	private AmazonSQS sqs;
 	private String queueUrl;
 	
-	private static final String TweetQueue = "TweetQueue";
+	private static final String TweetQueueName = "TweetQueue";
 
 	public QueueMessenger() {
 		// Get the credentials
@@ -36,12 +36,12 @@ public class QueueMessenger {
         sqs.setRegion(usEast);
 
         // Get the TweetQueue URL
-        queueUrl = sqs.getQueueUrl(QueueMessenger.TweetQueue).getQueueUrl();
+        queueUrl = sqs.getQueueUrl(QueueMessenger.TweetQueueName).getQueueUrl();
         System.out.println(queueUrl);
         
         // Delete all requests in the queue
-        PurgeQueueRequest request = new PurgeQueueRequest(queueUrl);
-        sqs.purgeQueue(request);
+//        PurgeQueueRequest request = new PurgeQueueRequest(queueUrl);
+//        sqs.purgeQueue(request);
         
 //        // Let's get the test message back
 //        ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(queueUrl);

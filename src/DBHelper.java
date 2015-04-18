@@ -167,9 +167,9 @@ public class DBHelper {
 	// Create string for prepared statement with tweet value placeholders
 	private String getInsertSqlStringForTweets(Map<String, List<Status>> map) {
 		int count = getTweetCount(map);
-		StringBuffer sql = new StringBuffer("INSERT INTO Tweets VALUES (NULL, ?, ?, DEFAULT, ?, ?)");
+		StringBuffer sql = new StringBuffer("INSERT INTO Tweets VALUES (NULL, ?, ?, DEFAULT, ?, ?, 0.0)");
 		for (int i = 1; i < count; i++)
-			sql.append(", (NULL, ?, ?, DEFAULT, ?, ?)");
+			sql.append(", (NULL, ?, ?, DEFAULT, ?, ?, 0.0)");
 		return sql.toString();
 	}
 	
