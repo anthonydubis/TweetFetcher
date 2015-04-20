@@ -9,7 +9,7 @@ public class TweetFetcher implements StatusListener {
 	private static DBHelper dbHelper;
 	private static StatusListener tweetListener;
 	private static TwitterStream tweetStream;
-	private static String[] keywords = {"love", "music", "friends", "hate", "sad", "bad"};
+	private static String[] keywords = {"happy", "music", "friends", "hate", "sad", "bad"};
 	private static Map<String, List<Status>> map;
 	private static Calendar nextDeletionDate = Calendar.getInstance();
 	

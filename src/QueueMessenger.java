@@ -40,8 +40,8 @@ public class QueueMessenger {
         System.out.println(queueUrl);
         
         // Delete all requests in the queue
-//        PurgeQueueRequest request = new PurgeQueueRequest(queueUrl);
-//        sqs.purgeQueue(request);
+        PurgeQueueRequest request = new PurgeQueueRequest(queueUrl);
+        sqs.purgeQueue(request);
         
 //        // Let's get the test message back
 //        ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(queueUrl);
