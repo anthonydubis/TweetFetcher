@@ -111,7 +111,7 @@ public class DBHelper {
 			
 			for (String keyword : keywords) {
 				if (!existingKeywords.contains(keyword)) {
-					String insert = "INSERT INTO Keywords VALUES (NULL, '" + keyword + "');";
+					String insert = "INSERT INTO Keywords VALUES (NULL, '" + keyword + "', 0.0);";
 					stmt.addBatch(insert);
 				}
 			}
